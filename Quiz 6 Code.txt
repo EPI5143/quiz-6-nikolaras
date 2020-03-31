@@ -1,0 +1,97 @@
+/*Quiz 6*/
+
+libname classdat '/folders/myfolders/class_data';
+libname ex '/folders/myfolders/epi databases work folder/data';
+
+/*Subsetting EncStartDtm for 2003*/
+/*only including relevant variables*/
+data ex.nencounter;
+set classdat.nencounter;
+run;
+
+data ex.nencounter;
+set ex.nencounter;
+if year(datepart(EncStartDtm)) in (2003);
+keep EncWID EncPatWID EncVisitTypeCd EncStartDtm; 
+run;
+
+/*Sorting data*/
+proc sort data = ex.nencounter;
+by EncPatWID;
+run;
+
+/*flat filing by inpatient encounters*/
+data ex.nencounter1;
+set ex.nencounter;
+by EncPatWID;
+if first.EncPatWID then do;
+inp = 0;count=0;
+end;
+if EncVisitTypeCd in :("INPT") then do;
+inp = 1;
+count = count+1;
+end;
+if last.EncPatWID then output;
+retain inp count;
+run;
+
+/*frequency table for inpatient encounters*/
+/*a) answer: 1074*/
+
+proc freq data = ex.nencounter1;
+table inp;
+run;
+
+/*flat filing by emergency room encounters*/
+data ex.nencounter2;
+set ex.nencounter;
+by EncPatWID;
+if first.EncPatWID then do;
+eme = 0;count=0;
+end;
+if EncVisitTypeCd in :("EMERG") then do;
+eme = 1;
+count = count+1;
+end;
+if last.EncPatWID then output;
+retain eme count;
+run;
+
+/*frequency table for emergency room encounters*/
+/*b) answer: 1978*/
+
+proc freq data = ex.nencounter2;
+table eme;
+run;
+
+/*flat filing by inpatient and emergency room encounters*/
+data ex.nencounter3;
+set ex.nencounter;
+by EncPatWID;
+if first.EncPatWID then do;
+both = 0;count=0;
+end;
+if EncVisitTypeCd in :("EMERG", "INPT") then do;
+both = 1;
+count = count+1;
+end;
+if last.EncPatWID then output;
+retain both count;
+run;
+
+/*frequency table for inpatient encounters and emergency room encounters*/
+/*c) answer: 2891*/
+
+proc freq data = ex.nencounter3;
+table both;
+run;
+
+/*d) frequency table for counts of inpatient encounters and emergency room encounters*/
+
+proc printto file="/folders/myfolders/freqtable.txt" new;
+proc freq data = ex.nencounter3;
+tables count;
+run;
+proc printto;run;
+
+
